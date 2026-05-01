@@ -18,17 +18,20 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6',
-            'role' => 'user'
         ]);
 
         if ($validator->fails()){
-            return response()->json($validator->errors(), 422);
-        }
+            return response()->json([
+            'message' => 'Validasi gagal',
+            'errors'  => $validator->errors()
+        ], 422);
+}
 
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => 'user'
         ]);
 
         $token = $user->createToken('FitTrack_AuthToken')->plainTextToken;
@@ -38,7 +41,7 @@ class AuthController extends Controller
             'data' => $user,
             'access_token' => $token,
             'token_type' => 'Bearer',
-            'role' => $role
+            'role' => $user->role
         ], 201);
     }
 
