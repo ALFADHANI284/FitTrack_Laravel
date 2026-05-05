@@ -12,7 +12,6 @@ class WorkoutController extends Controller
     // GET: Ambil Semua Data Latihan beserta Kategorinya
     public function index()
     {
-        // 'with' digunakan untuk memuat data relasi kategori sekaligus (Eager Loading) 
         $workouts = Workout::with('category')->latest()->get();
 
         return response()->json([
@@ -26,7 +25,6 @@ class WorkoutController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            // Validasi penting: Pastikan ID kategori yang dikirim benar-benar ada di tabel categories [cite: 229]
             'category_id'      => 'required|exists:categories,id', 
             'name'             => 'required|string|max:255',
             'duration_minutes' => 'nullable|integer',
