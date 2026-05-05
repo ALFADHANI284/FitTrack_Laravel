@@ -8,13 +8,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class IsAdmin
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        return $next($request);
+        // Cek apakah user sudah login dan punya role 'admin'
+        if ($request->user() && $request->user()->role === 'admin') {
+            return $next($request);
+        }
+
+        return response()->json([
+            'message' => 'Akses ditolak. Anda bukan admin.'
+        ], 403);
     }
 }
