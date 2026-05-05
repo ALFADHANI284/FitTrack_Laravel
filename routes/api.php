@@ -5,24 +5,23 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\WorkoutController;
 use App\Http\Controllers\Api\AuthController;
-
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+use App\Http\Middleware\IsAdmin; 
 
 // Public Routes
-Route::apiResource('/categories', CategoryController::class);
-Route::apiResource('/workouts', WorkoutController::class);
+Route::apiResource('/categories', CategoryController::class)->only(['index', 'show']); 
+Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']);    // DIBATASI! Publik cuma bisa lihat data (GET)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Protected Routes (harus ada Bearer Token di Header)
+// Protected User Routes (harus ada Bearer Token di Header)
 Route::middleware('auth:sanctum')->group(function (){
     Route::post('/logout', [AuthController::class, 'logout']);
-
-    // Contoh endpoint untuk ambil data user yang sedang login
-    Route::get('/user', function (Request $request){
+    Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user yang sedang login
         return $request->user();
     });
 });
 
+// Protected Admin Routes (harus ada Bearer Token milik Admin)
+Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
+    Route::apiResource('workouts', WorkoutController::class); // <--- Admin bebas akses semua (GET, POST, PUT, DELETE)
+});
