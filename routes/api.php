@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\WorkoutController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProfileController;
 use App\Http\Middleware\IsAdmin; 
 
 // Public Routes
@@ -13,13 +14,15 @@ Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show'
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// Protected User Routes (harus ada Bearer Token di Header)
-Route::middleware('auth:sanctum')->group(function (){
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user yang sedang login
-        return $request->user();
+    // Protected User Routes (harus ada Bearer Token di Header)
+    Route::middleware('auth:sanctum')->group(function (){
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user yang sedang login
+            return $request->user();
+        });
+        // Endpoint GET /api/profile
+        Route::get('/profile', [ProfileController::class, 'show']);
     });
-});
 
 // Protected Admin Routes (harus ada Bearer Token milik Admin)
 Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
