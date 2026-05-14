@@ -15,4 +15,8 @@ class Workout extends Model
         'calories_burned', 
         'description'
     ];
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }
