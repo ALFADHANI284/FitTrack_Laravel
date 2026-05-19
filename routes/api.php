@@ -18,7 +18,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // Protected User Routes (harus ada Bearer Token di Header)
 Route::middleware('auth:sanctum')->group(function (){
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user yang sedang login
+    Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user
         return $request->user();
     });
     Route::get('/profile', [ProfileController::class, 'show']); // Endpoint GET /api/profile
