@@ -19,7 +19,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkoutController;
 use App\Http\Controllers\Api\WorkoutHistoryController;
 use App\Http\Controllers\Api\WorkoutScheduleController;
-use App\Http\Controllers\Api\ReferralController; // Import Controller Baru Kamu
+use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\TdeeController; // <-- Import Controller Baru Kamu
 
 use App\Http\Middleware\IsAdmin;
 
@@ -80,7 +81,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/schedules', [ScheduleController::class, 'store']);
 
     // ======================================================
-    // USERS
+    // USERS & NUTRIENT TARGETS (TDEE)
     // ======================================================
 
     Route::get('/users', [UserController::class, 'index'])
@@ -91,6 +92,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     Route::post('/users/upload-avatar', [UserController::class, 'uploadAvatar']);
+    
+    // Route Baru Kamu untuk Hitung Kalori & Nutrisi:
+    Route::post('/users/calculate-tdee', [TdeeController::class, 'calculateTdee']);
 
     // ======================================================
     // WORKOUT
@@ -98,8 +102,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/workout', [WorkoutController::class, 'index']);
     Route::get('/workout/{id}', [WorkoutController::class, 'show']);
-
-    Route::post('/workout/{id}', [WorkoutController::class, 'join']);
 
     // ======================================================
     // WORKOUT SCHEDULES
@@ -152,7 +154,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/achievements', [AchievementController::class, 'index']);
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']);
     
-    // Route Tugas Baru Kamu:
     Route::get('/achievements/points', [AchievementController::class, 'points']);
     Route::get('/achievements/tiers', [AchievementController::class, 'tiers']);
     Route::get('/points/history', [AchievementController::class, 'pointHistory']);

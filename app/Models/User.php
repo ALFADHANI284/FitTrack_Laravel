@@ -12,7 +12,11 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens; 
 use Illuminate\Support\Str; // Tambahan untuk generate referral code
 
-#[Fillable(['name', 'email', 'password', 'role', 'avatar_path', 'points', 'tier', 'referral_code'])]
+#[Fillable([
+    'name', 'email', 'password', 'role', 'avatar_path', 
+    'points', 'tier', 'referral_code',
+    'daily_calories_target', 'daily_protein_target', 'daily_carbs_target', 'daily_fat_target' // <-- Tambah 4 kolom ini
+])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
