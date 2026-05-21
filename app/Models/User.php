@@ -9,9 +9,10 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // 
+use Laravel\Sanctum\HasApiTokens; 
+use Illuminate\Support\Str; // Tambahan untuk generate referral code
 
-#[Fillable(['name', 'email', 'password', 'role', 'avatar_path'])]
+#[Fillable(['name', 'email', 'password', 'role', 'avatar_path', 'points', 'tier', 'referral_code'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -29,6 +30,21 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // Auto-generate referral_code acak saat registrasi akun baru
+    protected static function boot()
+    {
+        parent::boot();
+        static::creating(function ($user) {
+            $user->referral_code = strtoupper(Str::random(8));
+        });
+    }
+
+    // Relasi Baru ke Histori Poin
+    public function pointHistories()
+    {
+        return $this->hasMany(PointHistory::class);
     }
 
     public function workoutClasses()
