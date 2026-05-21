@@ -46,44 +46,44 @@ Route::middleware('auth:sanctum')->group(function (){
     });
     Route::get('/profile', [ProfileController::class, 'show']);
     Route::post('/schedules', [ScheduleController::class, 'store']);
-
+    // User
     Route::get('/users', [UserController::class, 'index'])->middleware(IsAdmin::class);
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     Route::post('/users/upload-avatar', [UserController::class, 'uploadAvatar']);
-
+    // Workout
     Route::get('/workout', [WorkoutController::class, 'index']);
     Route::get('/workout/{id}', [WorkoutController::class, 'show']);
     Route::post('/workout/{id}', [WorkoutController::class, 'join']);
-
+    // Workout schedules
     Route::get('/workout-schedules', [WorkoutScheduleController::class, 'index']);
     Route::get('/workout-schedules/{id}', [WorkoutScheduleController::class, 'show']);
-
+    // Workout History
     Route::get('/workout-history', [WorkoutHistoryController::class, 'index']);
     Route::get('/workout-history/{id}', [WorkoutHistoryController::class, 'show']);
     Route::post('/workout-history', [WorkoutHistoryController::class, 'store']);
     Route::post('/workout-history/{id}', [WorkoutHistoryController::class, 'storeFromWorkout']);
     Route::delete('/workout-history/{id}', [WorkoutHistoryController::class, 'destroy']);
-
+    // Reminders
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::get('/reminders/{id}', [ReminderController::class, 'show']);
     Route::post('/reminders', [ReminderController::class, 'store']);
     Route::put('/reminders/{id}', [ReminderController::class, 'update']);
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
-
+    // Progress
     Route::get('/progress', [ProgressController::class, 'index']);
     Route::post('/progress', [ProgressController::class, 'store']);
     Route::put('/progress/{id}', [ProgressController::class, 'update']);
     Route::delete('/progress/{id}', [ProgressController::class, 'destroy']);
-
+    // Favorite
     Route::get('/favorites', [FavoriteController::class, 'index']);
     Route::post('/favorites/{workoutId}', [FavoriteController::class, 'store']);
     Route::delete('/favorites/{workoutId}', [FavoriteController::class, 'destroy']);
-
+    // Achievements
     Route::get('/achievements', [AchievementController::class, 'index']);
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']);
-
+    // AI
     Route::get('/ai/chat', [AiController::class, 'chatIndex']);
     Route::post('/ai/chat', [AiController::class, 'chatStore']);
     Route::get('/ai/personalization', [AiController::class, 'personalizationIndex']);
@@ -102,6 +102,7 @@ Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
     Route::delete('/workout-schedules/{id}', [WorkoutScheduleController::class, 'destroy']);
 });
 
+// Admin
 Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
     Route::apiResource('workouts', WorkoutController::class);
 });
