@@ -165,13 +165,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']);
 
-    // ======================================================
-    // NOTIFICATIONS
-    // ======================================================
+   // ======================================================
+// NOTIFICATIONS
+// ======================================================
 
-    Route::get('/notifications', [NotificationController::class, 'index']);
+Route::get('/notifications', [NotificationController::class, 'index']);
 
-    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+Route::put('/notifications/{id}/read', [NotificationController::class, 'read']);
 
     // ======================================================
     // REVIEWS & RATINGS
