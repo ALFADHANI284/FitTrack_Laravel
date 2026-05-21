@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Notifications;
+use App\Models\Notification;
 use App\Http\Controllers\Controller;
 
 class NotificationController extends Controller

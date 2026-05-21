@@ -1,0 +1,576 @@
+{
+  "info": {
+    "name": "FitTrack API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userId", "value": "1", "type": "string" },
+    { "key": "workoutId", "value": "1", "type": "string" },
+    { "key": "workoutScheduleId", "value": "1", "type": "string" },
+    { "key": "historyId", "value": "1", "type": "string" },
+    { "key": "reminderId", "value": "1", "type": "string" },
+    { "key": "progressId", "value": "1", "type": "string" },
+    { "key": "achievementId", "value": "1", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User Demo\",\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  var data = pm.response.json();",
+                  "  if (data.access_token) {",
+                  "    pm.collectionVariables.set('token', data.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  var data = pm.response.json();",
+                  "  if (data.access_token) {",
+                  "    pm.collectionVariables.set('token', data.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/refresh-token"
+          }
+        },
+        {
+          "name": "Me",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/profile",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User Demo Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password123\",\n  \"new_password\": \"password456\",\n  \"new_password_confirmation\": \"password456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/forgot-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"token\": \"PASTE_TOKEN_HERE\",\n  \"password\": \"password456\",\n  \"password_confirmation\": \"password456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/auth/verify-email",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get All Users (Admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users"
+          }
+        },
+        {
+          "name": "Get User Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/users/{{userId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"User Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/users/{{userId}}"
+          }
+        },
+        {
+          "name": "Upload Avatar",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/users/upload-avatar",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout",
+      "item": [
+        {
+          "name": "Get All Workout",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout"
+          }
+        },
+        {
+          "name": "Get Workout Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout/{{workoutId}}"
+          }
+        },
+        {
+          "name": "Join Workout Class",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/workout/{{workoutId}}"
+          }
+        },
+        {
+          "name": "Create Workout (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Push Up\",\n  \"duration_minutes\": 15,\n  \"calories_burned\": 100,\n  \"description\": \"Basic push up\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Workout (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout-classes/{{workoutId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category_id\": 1,\n  \"name\": \"Push Up Pro\",\n  \"duration_minutes\": 20,\n  \"calories_burned\": 140\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Workout (Admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/workout-classes/{{workoutId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout Schedule",
+      "item": [
+        {
+          "name": "Get Schedules",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout-schedules"
+          }
+        },
+        {
+          "name": "Get Schedule Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout-schedules/{{workoutScheduleId}}"
+          }
+        },
+        {
+          "name": "Create Schedule (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout-schedules",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workout_id\": 1,\n  \"title\": \"Morning Class\",\n  \"description\": \"Cardio session\",\n  \"scheduled_at\": \"2026-05-21 10:00:00\",\n  \"duration_minutes\": 45,\n  \"location\": \"Gym A\",\n  \"capacity\": 20\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Schedule (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout-schedules/{{workoutScheduleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Morning Class Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Schedule (Admin)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/workout-schedules/{{workoutScheduleId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Workout History",
+      "item": [
+        {
+          "name": "Get History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout-history"
+          }
+        },
+        {
+          "name": "Get History Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/workout-history/{{historyId}}"
+          }
+        },
+        {
+          "name": "Create History by Workout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout-history/{{workoutId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"duration_minutes\": 20,\n  \"calories_burned\": 120,\n  \"completed_at\": \"2026-05-21 10:30:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Save Completed Workout",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/workout-history",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"workout_id\": 1,\n  \"status\": \"completed\",\n  \"duration_minutes\": 20,\n  \"calories_burned\": 120,\n  \"completed_at\": \"2026-05-21 10:30:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete History",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/workout-history/{{historyId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reminders",
+      "item": [
+        {
+          "name": "Get Reminders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reminders"
+          }
+        },
+        {
+          "name": "Get Reminder Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/reminders/{{reminderId}}"
+          }
+        },
+        {
+          "name": "Create Reminder",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/reminders",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Workout Reminder\",\n  \"message\": \"Time to workout\",\n  \"remind_at\": \"2026-05-21 08:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Reminder",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/reminders/{{reminderId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Reminder\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Reminder",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/reminders/{{reminderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "item": [
+        {
+          "name": "Get Progress",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/progress"
+          }
+        },
+        {
+          "name": "Add Progress",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/progress",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"measured_at\": \"2026-05-21\",\n  \"weight_kg\": 72.5,\n  \"body_fat_percentage\": 18.2\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Progress",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/progress/{{progressId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weight_kg\": 71.8\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Progress",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/progress/{{progressId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Favorites",
+      "item": [
+        {
+          "name": "Get Favorites",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/favorites"
+          }
+        },
+        {
+          "name": "Add Favorite",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/favorites/{{workoutId}}"
+          }
+        },
+        {
+          "name": "Remove Favorite",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/favorites/{{workoutId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Achievements",
+      "item": [
+        {
+          "name": "Get Achievements",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/achievements"
+          }
+        },
+        {
+          "name": "Claim Achievement",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/achievements/claim/{{achievementId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Get AI Chat",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/chat"
+          }
+        },
+        {
+          "name": "Send AI Chat",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ai/chat",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"user\",\n  \"message\": \"Halo AI\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get AI Personalization",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/ai/personalization"
+          }
+        },
+        {
+          "name": "Create AI Personalization",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/api/ai/personalization",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"preferences\": {\n    \"goal\": \"fat_loss\",\n    \"level\": \"beginner\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete AI Personalization",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/ai/personalization"
+          }
+        }
+      ]
+    }
+  ]
+}
