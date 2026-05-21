@@ -18,10 +18,7 @@ use App\Http\Controllers\Api\WorkoutScheduleController;
 use App\Http\Middleware\IsAdmin;
 
 // Public Routes
-Route::apiResource('/categories', CategoryController::class)->only(['index', 'show']);
-Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']);
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
+
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
