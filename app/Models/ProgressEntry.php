@@ -5,27 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Schedule extends Model
+class ProgressEntry extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'title',
-        'workout_id',
-        'description',
-        'schedule_time',
-        'is_notified',
+        'measured_at',
+        'weight_kg',
+        'body_fat_percentage',
+        'muscle_mass_kg',
+        'notes',
     ];
 
-    // Relasi ke User
+    protected $casts = [
+        'measured_at' => 'date',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function workout()
-    {
-        return $this->belongsTo(Workout::class);
     }
 }

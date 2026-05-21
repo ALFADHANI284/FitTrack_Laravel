@@ -5,27 +5,27 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Schedule extends Model
+class UserAchievement extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'title',
-        'workout_id',
-        'description',
-        'schedule_time',
-        'is_notified',
+        'achievement_id',
+        'claimed_at',
     ];
 
-    // Relasi ke User
+    protected $casts = [
+        'claimed_at' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function workout()
+    public function achievement()
     {
-        return $this->belongsTo(Workout::class);
+        return $this->belongsTo(Achievement::class);
     }
 }

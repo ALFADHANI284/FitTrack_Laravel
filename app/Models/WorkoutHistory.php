@@ -5,20 +5,24 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Schedule extends Model
+class WorkoutHistory extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'title',
         'workout_id',
-        'description',
-        'schedule_time',
-        'is_notified',
+        'status',
+        'duration_minutes',
+        'calories_burned',
+        'completed_at',
+        'notes',
     ];
 
-    // Relasi ke User
+    protected $casts = [
+        'completed_at' => 'datetime',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

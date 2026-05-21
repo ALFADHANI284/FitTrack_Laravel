@@ -5,27 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Schedule extends Model
+class AiChat extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'user_id',
-        'title',
-        'workout_id',
-        'description',
-        'schedule_time',
-        'is_notified',
+        'role',
+        'message',
+        'meta',
     ];
 
-    // Relasi ke User
+    protected $casts = [
+        'meta' => 'array',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function workout()
-    {
-        return $this->belongsTo(Workout::class);
     }
 }

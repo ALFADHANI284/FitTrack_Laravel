@@ -130,4 +130,26 @@ class WorkoutController extends Controller
             'data' => null
         ], 200);
     }
+
+    // POST: Join workout class
+    public function join(Request $request, $id)
+    {
+        $workout = Workout::find($id);
+
+        if (!$workout) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Latihan tidak ditemukan',
+                'data' => null
+            ], 404);
+        }
+
+        $request->user()->workoutClasses()->syncWithoutDetaching([$workout->id]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Berhasil join workout class',
+            'data' => $workout
+        ], 200);
+    }
 }

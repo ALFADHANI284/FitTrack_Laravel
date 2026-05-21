@@ -2,30 +2,106 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\WorkoutController;
+use App\Http\Controllers\Api\AchievementController;
+use App\Http\Controllers\Api\AiController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\CategoryController;
+use App\Http\Controllers\Api\FavoriteController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\ProgressController;
+use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\ScheduleController;
-use App\Http\Middleware\IsAdmin; 
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\WorkoutController;
+use App\Http\Controllers\Api\WorkoutHistoryController;
+use App\Http\Controllers\Api\WorkoutScheduleController;
+use App\Http\Middleware\IsAdmin;
 
 // Public Routes
-Route::apiResource('/categories', CategoryController::class)->only(['index', 'show']); 
-Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']);    // DIBATASI! Publik cuma bisa lihat data (GET)
+Route::apiResource('/categories', CategoryController::class)->only(['index', 'show']);
+Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']);
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::prefix('auth')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
+
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::put('/profile', [AuthController::class, 'updateProfile']);
+        Route::put('/password', [AuthController::class, 'changePassword']);
+    });
+});
+
 // Protected User Routes (harus ada Bearer Token di Header)
 Route::middleware('auth:sanctum')->group(function (){
-    Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', function (Request $request){  // Endpoint untuk ambil data user
+    Route::get('/user', function (Request $request){
         return $request->user();
     });
-    Route::get('/profile', [ProfileController::class, 'show']); // Endpoint GET /api/profile
-    Route::post('/schedules', [ScheduleController::class, 'store']); // Endpoint POST /api/schedules
+    Route::get('/profile', [ProfileController::class, 'show']);
+    Route::post('/schedules', [ScheduleController::class, 'store']);
+
+    Route::get('/users', [UserController::class, 'index'])->middleware(IsAdmin::class);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::post('/users/upload-avatar', [UserController::class, 'uploadAvatar']);
+
+    Route::get('/workout', [WorkoutController::class, 'index']);
+    Route::get('/workout/{id}', [WorkoutController::class, 'show']);
+    Route::post('/workout/{id}', [WorkoutController::class, 'join']);
+
+    Route::get('/workout-schedules', [WorkoutScheduleController::class, 'index']);
+    Route::get('/workout-schedules/{id}', [WorkoutScheduleController::class, 'show']);
+
+    Route::get('/workout-history', [WorkoutHistoryController::class, 'index']);
+    Route::get('/workout-history/{id}', [WorkoutHistoryController::class, 'show']);
+    Route::post('/workout-history', [WorkoutHistoryController::class, 'store']);
+    Route::post('/workout-history/{id}', [WorkoutHistoryController::class, 'storeFromWorkout']);
+    Route::delete('/workout-history/{id}', [WorkoutHistoryController::class, 'destroy']);
+
+    Route::get('/reminders', [ReminderController::class, 'index']);
+    Route::get('/reminders/{id}', [ReminderController::class, 'show']);
+    Route::post('/reminders', [ReminderController::class, 'store']);
+    Route::put('/reminders/{id}', [ReminderController::class, 'update']);
+    Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
+
+    Route::get('/progress', [ProgressController::class, 'index']);
+    Route::post('/progress', [ProgressController::class, 'store']);
+    Route::put('/progress/{id}', [ProgressController::class, 'update']);
+    Route::delete('/progress/{id}', [ProgressController::class, 'destroy']);
+
+    Route::get('/favorites', [FavoriteController::class, 'index']);
+    Route::post('/favorites/{workoutId}', [FavoriteController::class, 'store']);
+    Route::delete('/favorites/{workoutId}', [FavoriteController::class, 'destroy']);
+
+    Route::get('/achievements', [AchievementController::class, 'index']);
+    Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']);
+
+    Route::get('/ai/chat', [AiController::class, 'chatIndex']);
+    Route::post('/ai/chat', [AiController::class, 'chatStore']);
+    Route::get('/ai/personalization', [AiController::class, 'personalizationIndex']);
+    Route::post('/ai/personalization', [AiController::class, 'personalizationStore']);
+    Route::delete('/ai/personalization', [AiController::class, 'personalizationDestroy']);
 });
 
 // Protected Admin Routes (harus ada Bearer Token milik Admin)
+Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
+    Route::post('/workout', [WorkoutController::class, 'store']);
+    Route::put('/workout-classes/{id}', [WorkoutController::class, 'update']);
+    Route::delete('/workout-classes/{id}', [WorkoutController::class, 'destroy']);
+
+    Route::post('/workout-schedules', [WorkoutScheduleController::class, 'store']);
+    Route::put('/workout-schedules/{id}', [WorkoutScheduleController::class, 'update']);
+    Route::delete('/workout-schedules/{id}', [WorkoutScheduleController::class, 'destroy']);
+});
+
 Route::middleware(['auth:sanctum', IsAdmin::class])->prefix('admin')->group(function () {
-    Route::apiResource('workouts', WorkoutController::class); // Admin bebas akses (GET, POST, PUT, DELETE)
+    Route::apiResource('workouts', WorkoutController::class);
 });
