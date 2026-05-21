@@ -18,7 +18,10 @@ use App\Http\Controllers\Api\WorkoutScheduleController;
 use App\Http\Middleware\IsAdmin;
 
 // Public Routes
-
+Route::apiResource('/categories', CategoryController::class)->only(['index', 'show']); // untuk ke kategori workout
+Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']); // untuk ke workouts
+Route::post('/register', [AuthController::class, 'register']); // untuk ke register
+Route::post('/login', [AuthController::class, 'login']); // untuk ke login
 
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
