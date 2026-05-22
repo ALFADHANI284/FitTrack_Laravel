@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\WorkoutHistoryController;
 use App\Http\Controllers\Api\WorkoutScheduleController;
 use App\Http\Controllers\Api\ReferralController;
 use App\Http\Controllers\Api\TdeeController; // <-- Import Controller Baru Kamu
+use App\Http\Controllers\Api\StreakController;
 
 use App\Http\Middleware\IsAdmin;
 
@@ -59,6 +60,8 @@ Route::prefix('auth')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::put('/profile', [AuthController::class, 'updateProfile']);
         Route::put('/password', [AuthController::class, 'changePassword']);
+
+        
     });
 });
 
@@ -192,6 +195,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ai/personalization', [AiController::class, 'personalizationIndex']);
     Route::post('/ai/personalization', [AiController::class, 'personalizationStore']);
     Route::delete('/ai/personalization', [AiController::class, 'personalizationDestroy']);
+
+    // Streak
+        Route::post('/user/check-in', [StreakController::class, 'checkIn']);
+        Route::get('/user/streak', [StreakController::class, 'getStreak']);
 });
 
 
