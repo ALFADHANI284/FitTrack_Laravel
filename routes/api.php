@@ -103,7 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // WORKOUT
     // ======================================================
 
-    Route::get('/workout', [WorkoutController::class, 'index']);
+    // Route::get('/workout', [WorkoutController::class, 'index']);
     Route::get('/workout/{id}', [WorkoutController::class, 'show']);
 
     // ======================================================
