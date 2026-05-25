@@ -19,6 +19,9 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\WorkoutController;
 use App\Http\Controllers\Api\WorkoutHistoryController;
 use App\Http\Controllers\Api\WorkoutScheduleController;
+use App\Http\Controllers\Api\ReferralController;
+use App\Http\Controllers\Api\TdeeController; // <-- Import Controller Baru Kamu
+use App\Http\Controllers\Api\StreakController;
 
 use App\Http\Middleware\IsAdmin;
 
@@ -51,13 +54,14 @@ Route::prefix('auth')->group(function () {
 
     Route::middleware('auth:sanctum')->group(function () {
 
+        // ... sisa route auth ...
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/refresh-token', [AuthController::class, 'refreshToken']);
-
         Route::get('/me', [AuthController::class, 'me']);
-
         Route::put('/profile', [AuthController::class, 'updateProfile']);
         Route::put('/password', [AuthController::class, 'changePassword']);
+
+        
     });
 });
 
@@ -80,7 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/schedules', [ScheduleController::class, 'store']);
 
     // ======================================================
-    // USERS
+    // USERS & NUTRIENT TARGETS (TDEE)
     // ======================================================
 
     Route::get('/users', [UserController::class, 'index'])
@@ -91,6 +95,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     Route::post('/users/upload-avatar', [UserController::class, 'uploadAvatar']);
+    
+    // Route Baru Kamu untuk Hitung Kalori & Nutrisi:
+    Route::post('/users/calculate-tdee', [TdeeController::class, 'calculateTdee']);
 
     // ======================================================
     // WORKOUT
@@ -98,8 +105,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/workout', [WorkoutController::class, 'index']);
     Route::get('/workout/{id}', [WorkoutController::class, 'show']);
-
-    Route::post('/workout/{id}', [WorkoutController::class, 'join']);
 
     // ======================================================
     // WORKOUT SCHEDULES
@@ -113,13 +118,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================================
 
     Route::get('/workout-history', [WorkoutHistoryController::class, 'index']);
-
     Route::get('/workout-history/{id}', [WorkoutHistoryController::class, 'show']);
-
     Route::post('/workout-history', [WorkoutHistoryController::class, 'store']);
-
     Route::post('/workout-history/{id}', [WorkoutHistoryController::class, 'storeFromWorkout']);
-
     Route::delete('/workout-history/{id}', [WorkoutHistoryController::class, 'destroy']);
 
     // ======================================================
@@ -128,11 +129,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/reminders', [ReminderController::class, 'index']);
     Route::get('/reminders/{id}', [ReminderController::class, 'show']);
-
     Route::post('/reminders', [ReminderController::class, 'store']);
-
     Route::put('/reminders/{id}', [ReminderController::class, 'update']);
-
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']);
 
     // ======================================================
@@ -140,11 +138,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================================
 
     Route::get('/progress', [ProgressController::class, 'index']);
-
     Route::post('/progress', [ProgressController::class, 'store']);
-
     Route::put('/progress/{id}', [ProgressController::class, 'update']);
-
     Route::delete('/progress/{id}', [ProgressController::class, 'destroy']);
 
     // ======================================================
@@ -152,26 +147,32 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================================
 
     Route::get('/favorites', [FavoriteController::class, 'index']);
-
     Route::post('/favorites/{workoutId}', [FavoriteController::class, 'store']);
-
     Route::delete('/favorites/{workoutId}', [FavoriteController::class, 'destroy']);
 
     // ======================================================
-    // ACHIEVEMENTS
+    // ACHIEVEMENTS & POINTS
     // ======================================================
 
     Route::get('/achievements', [AchievementController::class, 'index']);
-
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']);
+    
+    Route::get('/achievements/points', [AchievementController::class, 'points']);
+    Route::get('/achievements/tiers', [AchievementController::class, 'tiers']);
+    Route::get('/points/history', [AchievementController::class, 'pointHistory']);
+
+    // ======================================================
+    // REFERRAL
+    // ======================================================
+    
+    Route::post('/referrals/redeem', [ReferralController::class, 'redeem']);
 
     // ======================================================
     // NOTIFICATIONS
     // ======================================================
 
     Route::get('/notifications', [NotificationController::class, 'index']);
-
-    Route::put('/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::put('/notifications/{id}/read', [NotificationController::class, 'read']);
 
     // ======================================================
     // REVIEWS & RATINGS
@@ -190,14 +191,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // ======================================================
 
     Route::get('/ai/chat', [AiController::class, 'chatIndex']);
-
     Route::post('/ai/chat', [AiController::class, 'chatStore']);
-
     Route::get('/ai/personalization', [AiController::class, 'personalizationIndex']);
-
     Route::post('/ai/personalization', [AiController::class, 'personalizationStore']);
-
     Route::delete('/ai/personalization', [AiController::class, 'personalizationDestroy']);
+
+    // Streak
+        Route::post('/user/check-in', [StreakController::class, 'checkIn']);
+        Route::get('/user/streak', [StreakController::class, 'getStreak']);
 });
 
 
@@ -207,18 +208,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
 
-    // Workout
     Route::post('/workout', [WorkoutController::class, 'store']);
-
     Route::put('/workout-classes/{id}', [WorkoutController::class, 'update']);
-
     Route::delete('/workout-classes/{id}', [WorkoutController::class, 'destroy']);
 
-    // Workout Schedule
     Route::post('/workout-schedules', [WorkoutScheduleController::class, 'store']);
-
     Route::put('/workout-schedules/{id}', [WorkoutScheduleController::class, 'update']);
-
     Route::delete('/workout-schedules/{id}', [WorkoutScheduleController::class, 'destroy']);
 });
 
