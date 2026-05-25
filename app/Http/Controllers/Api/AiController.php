@@ -30,6 +30,8 @@ class AiController extends Controller
             'meta' => 'nullable|array',
         ]);
 
+        $mainPrompt = "";
+
         $chat = AiChat::create([
             'user_id' => $request->user()->id,
             'role' => $validated['role'] ?? 'user',
@@ -37,10 +39,25 @@ class AiController extends Controller
             'meta' => $validated['meta'] ?? null,
         ]);
 
+        $aiReplyText = 'halo dummy';
+
+        $aiReply = AiChat::create([
+            'user_id' => $request->user()->id,
+            'role' => 'assistant',
+            'message' => $aiReplyText,
+            'meta' => [
+                'source' => 'dummy',
+                'request_chat_id' => $chat->id,
+            ],
+        ]);
+
         return response()->json([
             'status' => true,
             'message' => 'AI chat berhasil disimpan',
-            'data' => $chat,
+            'data' => [
+                'user_message' => $chat,
+                'ai_reply' => $aiReply,
+            ],
         ], 201);
     }
 
