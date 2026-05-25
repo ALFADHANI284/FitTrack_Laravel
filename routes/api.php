@@ -226,5 +226,5 @@ Route::middleware(['auth:sanctum', IsAdmin::class])
     ->prefix('admin')
     ->group(function () {
 
-        Route::apiResource('workouts', WorkoutController::class);
+        // Route::apiResource('workouts', WorkoutController::class);
     });
