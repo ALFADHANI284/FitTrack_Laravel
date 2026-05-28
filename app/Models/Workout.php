@@ -14,7 +14,8 @@ class Workout extends Model
         'name',
         'duration_minutes',
         'calories_burned',
-        'description'
+        'description',
+        'link_yt',
     ];
 
     public function category()

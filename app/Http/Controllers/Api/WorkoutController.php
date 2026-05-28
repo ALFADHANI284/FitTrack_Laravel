@@ -29,7 +29,8 @@ class WorkoutController extends Controller
             'name'             => 'required|string|max:255',
             'duration_minutes' => 'nullable|integer',
             'calories_burned'  => 'nullable|integer',
-            'description'      => 'nullable|string'
+            'description'      => 'nullable|string',
+            'link_yt'          => 'nullable|string|url|max:255'
         ]);
 
         if ($validator->fails()) {
@@ -88,7 +89,8 @@ class WorkoutController extends Controller
             'name'             => 'required|string|max:255',
             'duration_minutes' => 'nullable|integer',
             'calories_burned'  => 'nullable|integer',
-            'description'      => 'nullable|string'
+            'description'      => 'nullable|string',
+            'link_yt'          => 'nullable|string|url|max:255'
         ]);
 
         if ($validator->fails()) {
