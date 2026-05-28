@@ -215,6 +215,11 @@ Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
     Route::post('/workout-schedules', [WorkoutScheduleController::class, 'store']);
     Route::put('/workout-schedules/{id}', [WorkoutScheduleController::class, 'update']);
     Route::delete('/workout-schedules/{id}', [WorkoutScheduleController::class, 'destroy']);
+
+    // Categories
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 });
 
 
