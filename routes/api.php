@@ -208,9 +208,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
 Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
 
-    Route::post('/workout', [WorkoutController::class, 'store']);
-    Route::put('/workout-classes/{id}', [WorkoutController::class, 'update']);
-    Route::delete('/workout-classes/{id}', [WorkoutController::class, 'destroy']);
+    Route::post('/workouts', [WorkoutController::class, 'store']);
+    Route::put('/workouts/{id}', [WorkoutController::class, 'update']);
+    Route::delete('/workouts/{id}', [WorkoutController::class, 'destroy']);
 
     Route::post('/workout-schedules', [WorkoutScheduleController::class, 'store']);
     Route::put('/workout-schedules/{id}', [WorkoutScheduleController::class, 'update']);
