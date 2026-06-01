@@ -6,13 +6,29 @@ use App\Http\Controllers\Controller;
 use App\Models\Workout;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class WorkoutController extends Controller
 {
     // GET: Ambil Semua Data Latihan beserta Kategorinya
-    public function index()
+    public function index(Request $request)
     {
+        $user = auth('sanctum')->user();// Ambil data user dari token
         $workouts = Workout::with('category')->latest()->get();
+
+        // Looping semua data buat nambahin status is_favorite
+        $workouts->map(function ($workout) use ($user) {
+            if ($user) {
+                // Cek ke tabel favorites apakah user ini pernah nge-like workout ini
+                $workout->is_favorite = \DB::table('favorites')
+                    ->where('workout_id', $workout->id)
+                    ->where('user_id', $user->id)
+                    ->exists();
+            } else {
+                $workout->is_favorite = false;
+            }
+            return $workout;
+        });
 
         return response()->json([
             'status' => true,
@@ -20,7 +36,6 @@ class WorkoutController extends Controller
             'data' => $workouts
         ], 200);
     }
-
     // POST: Tambah Latihan Baru
     public function store(Request $request)
     {
@@ -51,8 +66,10 @@ class WorkoutController extends Controller
     }
 
     // GET: Detail 1 Latihan
-    public function show($id)
+    public function show(Request $request, $id)
     {
+        $user = auth('sanctum')->user(); // Ambil data user dari token
+        
         // Cari data beserta kategorinya
         $workout = Workout::with('category')->find($id);
 
@@ -62,6 +79,16 @@ class WorkoutController extends Controller
                 'message' => 'Latihan tidak ditemukan',
                 'data' => null
             ], 404);
+        }
+
+        // Tambahin pengecekan is_favorite khusus untuk 1 workout ini
+        if ($user) {
+            $workout->is_favorite = \DB::table('favorites')
+                ->where('workout_id', $workout->id)
+                ->where('user_id', $user->id)
+                ->exists();
+        } else {
+            $workout->is_favorite = false;
         }
 
         return response()->json([
