@@ -67,17 +67,43 @@ class ProfileController extends Controller
             'weight'               => $request->weight,
             'height'               => $request->height,
             'activity_level'       => $request->activity_level,
-            'daily_calorie_target' => round($calorieTarget), // Dibulatkan biar rapi
+            'daily_calories_target' => round($calorieTarget), 
         ]);
 
         return response()->json([
-            'status'  => true,
-            'message' => 'Data onboarding berhasil disimpan dan kalori telah dihitung!',
-            'data'    => [
-                'name'                 => $user->name,
-                'goal'                 => $user->goal,
-                'daily_calorie_target' => $user->daily_calorie_target . ' kcal'
-            ]
-        ], 200);
+    'status'  => true,
+    'message' => 'Data profil berhasil diambil!',
+    'data'    => [
+        'id'                    => $user->id,
+        'name'                  => $user->name,
+        'email'                 => $user->email, 
+        'weight'                => (float) $user->weight,
+        'height'                => (float) $user->height,
+        'goal'                  => $user->goal,
+        'daily_calories_target' => (int) $user->daily_calories_target,
+        'points'                => $user->points ?? 0, 
+        'tier'                  => $user->tier ?? 'Bronze'
+    ]
+], 200);
     }
+
+    public function show(Request $request) {
+    $user = $request->user(); // Ambil data user yang lagi login
+
+    return response()->json([
+        'status' => 'success',
+        'message' => 'Data profil berhasil diambil',
+        'data' => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'weight' => (float) $user->weight,
+            'height' => (float) $user->height,
+            'goal' => $user->goal,
+            'daily_calories_target' => (int) $user->daily_calories_target, 
+            'points' => $user->points ?? 0,
+            'tier' => $user->tier ?? 'Bronze'
+        ]
+    ]);
+}
 }
