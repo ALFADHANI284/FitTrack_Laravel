@@ -79,7 +79,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'show']);
-
+    // Goals
+    Route::post('/profile/onboarding', [ProfileController::class, 'saveOnboarding']);
     // Schedules
     Route::post('/schedules', [ScheduleController::class, 'store']);
 
