@@ -59,13 +59,13 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    // Search Workouts
+    // Search Workouts (Udah)
     Route::get('/workouts/search', [WorkoutController::class, 'search']); // (Udah)
-    // Workouts Core
+    // Workouts Core (Udah)
     Route::apiResource('/workouts', WorkoutController::class)->only(['index', 'show']); // (Udah)
     Route::get('/workout/{id}', [WorkoutController::class, 'show']); // (Udah)
 
-    // Profile & Onboarding
+    // Profile & Onboarding (Udah)
     Route::get('/profile', [ProfileController::class, 'show']); // (Udah)
     Route::post('/profile/onboarding', [ProfileController::class, 'saveOnboarding']); // (Udah)
 
@@ -82,7 +82,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/workout-schedules', [WorkoutScheduleController::class, 'index']); // (Udah)
     Route::get('/workout-schedules/{id}', [WorkoutScheduleController::class, 'show']); // (Udah)
 
-    // WORKOUT HISTORY (Ke-2)
+    // WORKOUT HISTORY (Ke-2) (Udah)
     Route::get('/workout-history', [WorkoutHistoryController::class, 'index']); // (Udah)
     Route::get('/workout-history/{id}', [WorkoutHistoryController::class, 'show']); // (Udah)
     Route::post('/workout-history', [WorkoutHistoryController::class, 'store']); // (Udah)
@@ -96,35 +96,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/reminders/{id}', [ReminderController::class, 'update']); // (Udah)
     Route::delete('/reminders/{id}', [ReminderController::class, 'destroy']); // (Udah)
 
-    // PROGRESS (Ke-4)
+    // PROGRESS (Ke-4) (Udah)
     Route::get('/progress', [ProgressController::class, 'index']); // (Udah)
     Route::post('/progress', [ProgressController::class, 'store']); // (Udah)
     Route::put('/progress/{id}', [ProgressController::class, 'update']); // (Udah)
     Route::delete('/progress/{id}', [ProgressController::class, 'destroy']); // (Udah)
 
-    // FAVORITES
+    // FAVORITES (Udah)
     Route::get('/favorites', [FavoriteController::class, 'index']); // (Udah)
     Route::post('/favorites/{workoutId}', [FavoriteController::class, 'store']); // (Udah)
     Route::delete('/favorites/{workoutId}', [FavoriteController::class, 'destroy']); // (Udah)
 
-    // ACHIEVEMENTS & POINTS
+    // ACHIEVEMENTS & POINTS 
     Route::get('/achievements', [AchievementController::class, 'index']); // (Udah)
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']); // (Udah)
     Route::get('/achievements/points', [AchievementController::class, 'points']); // (Udah)
     Route::get('/achievements/tiers', [AchievementController::class, 'tiers']); // (Udah)
     Route::get('/points/history', [AchievementController::class, 'pointHistory']); // (Udah)
 
-    // REFERRAL
+    // REFERRAL (Udah)
     Route::post('/referrals/redeem', [ReferralController::class, 'redeem']); // (Udah)
 
     // NOTIFICATIONS (Ke-6)
     Route::get('/notifications', [NotificationController::class, 'index']); // (Udah)
     Route::put('/notifications/{id}/read', [NotificationController::class, 'read']); // (Udah)
 
-    // REVIEWS & RATINGS
-    Route::post('/workout-classes/{id}/reviews', [ReviewController::class, 'store']); // (Udah)
+    // REVIEWS & RATINGS (Udah)
+    Route::post('/user/reviews', [ReviewController::class, 'store']); // (Udah)
+    Route::get('/user/reviews', [ReviewController::class, 'userReviews']); // (Udah)
 
-    // ANALYTICS (Ke-5)
+    // ANALYTICS (Ke-5) (Udah)
     Route::get('/analytics/summary', [AnalyticsController::class, 'summary']); // (Udah)
 
     // AI (udah)
@@ -134,7 +135,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/ai/personalization', [AiController::class, 'personalizationStore']); // (Udah)
     Route::delete('/ai/personalization', [AiController::class, 'personalizationDestroy']); // (Udah)
 
-    // Streak (Ke-7)
+    // Streak (Ke-7) (Udah)
     Route::get('/user/streak', [StreakController::class, 'getStreak']); // (Udah)
 });
 
