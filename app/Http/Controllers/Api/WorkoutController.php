@@ -181,4 +181,33 @@ class WorkoutController extends Controller
             'data' => $workout
         ], 200);
     }
+
+    // Search
+    public function search(Request $request)
+    {
+        // Tangkap kata kunci dari URL (contoh: api/workouts/search?q=push up)
+        $keyword = $request->query('q');
+
+        // Kalau keyword kosong, balikin array kosong aja biar Android gak berat
+        if (!$keyword) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Masukkan kata kunci pencarian',
+                'data' => []
+            ], 200);
+        }
+
+        // Cari di database: Nama mirip ATAU deskripsi mirip
+        // Eager load 'category' kalau lu butuh nampilin nama kategori di UI
+        $workouts = Workout::with('category')
+            ->where('name', 'like', '%' . $keyword . '%')
+            ->orWhere('description', 'like', '%' . $keyword . '%')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Hasil pencarian untuk: ' . $keyword,
+            'data' => $workouts
+        ], 200);
+    }
 }
