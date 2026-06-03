@@ -2,72 +2,60 @@
 
 namespace App\Http\Controllers\Api;
 
-
 use App\Http\Controllers\Controller;
-use App\Models\CheckIn;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-
+use App\Models\WorkoutHistory;
+use Illuminate\Support\Facades\DB; 
 class StreakController extends Controller
 {
-    // POST /api/user/check-in
-    public function checkIn(Request $request)
+    // GET /api/user/streak
+    public function getStreak()
     {
         $user = auth()->user();
 
-        $today = Carbon::today()->toDateString();
+        // 1. Ambil tanggal unik dari riwayat workout user berdasarkan completed_at
+        $workoutDates = WorkoutHistory::where('user_id', $user->id)
+            ->whereNotNull('completed_at')
+            ->select(DB::raw('DATE(completed_at) as date')) 
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->pluck('date');
 
-        // Cek apakah user sudah check-in hari ini
-        $alreadyCheckIn = CheckIn::where('user_id', $user->id)
-            ->where('check_in_date', $today)
-            ->exists();
-
-        if ($alreadyCheckIn) {
+        $streak = 0;
+        
+        if ($workoutDates->isEmpty()) {
             return response()->json([
-                'success' => false,
-                'message' => 'Kamu sudah check-in hari ini'
-            ], 400);
+                'success' => true,
+                'streak_days' => 0,
+                'has_workout_today' => false
+            ]);
         }
 
-        // Simpan check-in
-        CheckIn::create([
-            'user_id' => $user->id,
-            'check_in_date' => $today
-        ]);
+        $today = now()->startOfDay();
+        
+        // 2. Cek apakah user udah workout hari ini
+        $hasWorkoutToday = $workoutDates->contains($today->toDateString());
+
+        // 3. Mulai hitung mundur. Kalau hari ini belum, cek dari kemarin
+        $dateToCheck = $hasWorkoutToday ? $today : now()->subDay()->startOfDay();
+
+        foreach ($workoutDates as $dateString) {
+            $parsedDate = Carbon::parse($dateString)->startOfDay();
+
+            // Kalau cocok, tambah streak dan mundur 1 hari
+            if ($parsedDate->equalTo($dateToCheck)) {
+                $streak++;
+                $dateToCheck->subDay(); 
+            } else {
+                break; // Bolong, streak putus
+            }
+        }
 
         return response()->json([
             'success' => true,
-            'message' => 'Check-in berhasil'
+            'streak_days' => $streak,
+            'has_workout_today' => $hasWorkoutToday
         ]);
     }
-
-    // GET /api/user/streak
-    public function getStreak()
-{
-    $user = auth()->user();
-
-    $checkIns = CheckIn::where('user_id', $user->id)
-        ->orderBy('check_in_date', 'desc')
-        ->pluck('check_in_date');
-
-    $streak = 0;
-
-    $today = now()->startOfDay();
-
-    foreach ($checkIns as $index => $date) {
-
-        $expectedDate = $today->copy()->subDays($index);
-
-        if (\Carbon\Carbon::parse($date)->equalTo($expectedDate)) {
-            $streak++;
-        } else {
-            break;
-        }
-    }
-
-    return response()->json([
-        'success' => true,
-        'streak_days' => $streak
-    ]);
-}
 }
