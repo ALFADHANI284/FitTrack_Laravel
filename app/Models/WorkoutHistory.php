@@ -23,11 +23,13 @@ class WorkoutHistory extends Model
         'completed_at' => 'datetime',
     ];
 
+    // Relasi balik ke tabel users
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // Relasi balik ke tabel workouts
     public function workout()
     {
         return $this->belongsTo(Workout::class);
