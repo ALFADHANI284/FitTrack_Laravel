@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 
 class ReferralController extends Controller
 {
-    // POST /api/referrals/redeem
     public function redeem(Request $request)
     {
         $request->validate([
