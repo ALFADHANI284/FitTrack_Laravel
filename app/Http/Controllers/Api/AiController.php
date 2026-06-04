@@ -168,7 +168,8 @@ PROMPT;
                 . "\nPilih maps_search = true hanya jika user minta rekomendasi tempat atau gym terdekat DAN lokasi user sudah disebutkan di chat."
                 . "\nJika maps_search = false, isi maps_query dengan string kosong."
                 . "\nJika maps_search = true, buat maps_query singkat dan relevan (maks 8 kata) dan sertakan lokasi."
-                . "\nJika lokasi belum disebutkan, maps_search = false dan minta user kirim lokasi (tanyakan sedang ada dikota mana).";
+                . "\nJika lokasi belum disebutkan, maps_search = false dan minta user kirim lokasi (tanyakan sedang ada dikota mana)."
+                . "\nJika user hanya membalas nama kota/area (contoh: \"Jakarta\"), anggap itu jawaban lokasi dan set maps_search = true.";
 
             $result = Gemini::generativeModel(
                 model: 'gemini-3.1-flash-lite'
@@ -201,6 +202,14 @@ PROMPT;
 
                 if ($shouldMapsSearch && is_string($mapsQuery) && trim($mapsQuery) !== '') {
                     $mapsResults = $this->searchOpenStreetMap($mapsQuery);
+                }
+            }
+
+            if ($mapsResults === []) {
+                $fallbackQuery = $this->inferMapsQueryFromMessage($validated['message'], $historyChats);
+
+                if ($fallbackQuery !== null) {
+                    $mapsResults = $this->searchOpenStreetMap($fallbackQuery);
                 }
             }
 
@@ -356,6 +365,45 @@ PROMPT;
         return array_slice($results, 0, 8);
     }
 
+    private function inferMapsQueryFromMessage(string $message, $historyChats): ?string
+    {
+        $trimmed = trim($message);
+
+        if ($trimmed === '' || strlen($trimmed) > 60) {
+            return null;
+        }
+
+        $lastAssistant = $this->getLastAssistantMessage($historyChats);
+        $askedLocation = $lastAssistant && preg_match('/\b(lokasi|daerah|kota|di mana|dimana)\b/i', $lastAssistant);
+
+        if (!$askedLocation) {
+            return null;
+        }
+
+        if (preg_match('/\b(gym|fitness|fitnes)\b/i', $trimmed)) {
+            return $trimmed;
+        }
+
+        return 'gym ' . $trimmed;
+    }
+
+    private function getLastAssistantMessage($historyChats): ?string
+    {
+        if (!is_object($historyChats) || !method_exists($historyChats, 'filter')) {
+            return null;
+        }
+
+        $lastAssistant = $historyChats
+            ->filter(fn ($chat) => $chat->role === 'assistant')
+            ->last();
+
+        if (!$lastAssistant) {
+            return null;
+        }
+
+        return is_string($lastAssistant->message) ? $lastAssistant->message : null;
+    }
+
     private function extractLocationQuery(string $query): string
     {
         $cleaned = preg_replace('/\b(gym|gym terdekat|fitness|fitnes|dekat|terdekat)\b/i', '', $query);
@@ -371,33 +419,17 @@ PROMPT;
 
     private function geocodeLocation(string $query): ?array
     {
-        try {
-            $response = Http::timeout(8)
-                ->withHeaders([
-                    'User-Agent' => 'FitTrack/1.0 (FitTrack Laravel)',
-                    'Accept-Language' => 'id',
-                ])
-                ->get('https://nominatim.openstreetmap.org/search', [
-                    'q' => $query,
-                    'format' => 'json',
-                    'limit' => 1,
-                    'addressdetails' => 1,
-                ]);
-        } catch (Throwable $e) {
+        $items = $this->queryNominatim($query, 'id');
+
+        if ($items === []) {
+            $items = $this->queryNominatim($query, null);
+        }
+
+        if ($items === []) {
             return null;
         }
 
-        if (!$response->successful()) {
-            return null;
-        }
-
-        $items = $response->json();
-
-        if (!is_array($items) || $items === []) {
-            return null;
-        }
-
-        $item = $items[0];
+        $item = $this->pickNominatimResult($items, 'id') ?? $items[0];
         $lat = $item['lat'] ?? null;
         $lon = $item['lon'] ?? null;
 
@@ -410,6 +442,55 @@ PROMPT;
             'lon' => (float) $lon,
             'label' => $item['display_name'] ?? null,
         ];
+    }
+
+    private function queryNominatim(string $query, ?string $countryCode): array
+    {
+        try {
+            $params = [
+                'q' => $query,
+                'format' => 'json',
+                'limit' => 5,
+                'addressdetails' => 1,
+            ];
+
+            if ($countryCode) {
+                $params['countrycodes'] = $countryCode;
+            }
+
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'User-Agent' => 'FitTrack/1.0 (FitTrack Laravel)',
+                    'Accept-Language' => 'id',
+                ])
+                ->get('https://nominatim.openstreetmap.org/search', $params);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json();
+
+        return is_array($items) ? $items : [];
+    }
+
+    private function pickNominatimResult(array $items, string $countryCode): ?array
+    {
+        $target = strtolower($countryCode);
+
+        foreach ($items as $item) {
+            $address = $item['address'] ?? null;
+            $code = is_array($address) ? strtolower((string) ($address['country_code'] ?? '')) : '';
+
+            if ($code === $target) {
+                return $item;
+            }
+        }
+
+        return null;
     }
 
     private function searchOverpassGyms(float $lat, float $lon, int $radiusMeters): array
