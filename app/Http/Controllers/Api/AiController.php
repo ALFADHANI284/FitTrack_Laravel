@@ -130,6 +130,20 @@ Batasan:
 - Selalu utamakan keselamatan user.
 PROMPT;
 
+        $historyChats = AiChat::where('user_id', $user->id)
+            ->latest()
+            ->take(4)
+            ->get()
+            ->reverse();
+
+        $historyText = $historyChats
+            ->map(fn ($chat) => strtoupper($chat->role) . ': ' . $chat->message)
+            ->implode("\n");
+
+        if ($historyText === '') {
+            $historyText = 'Tidak ada.';
+        }
+
         $chat = AiChat::create([
             'user_id' => $user->id,
             'role'    => $validated['role'] ?? 'user',
@@ -141,6 +155,7 @@ PROMPT;
 
         try {
             $prompt = trim($mainPrompt)
+                . "\n\nRiwayat singkat:\n" . $historyText
                 . "\n\nUser message:\n" . $validated['message']
                 . "\n\nInstruksi output:"
                 . "\nBalas dalam JSON murni tanpa markdown."
@@ -236,7 +251,7 @@ PROMPT;
                 'part'       => 'snippet',
                 'q'          => $trimmedQuery,
                 'type'       => 'video',
-                'maxResults' => 3,
+                'maxResults' => 5,
                 'safeSearch' => 'moderate',
                 'key'        => $apiKey,
             ]);
