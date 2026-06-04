@@ -96,6 +96,7 @@ Aturan penting:
 10. Jika data user kurang lengkap, tanyakan informasi tambahan yang relevan seperti tujuan, berat badan, tinggi badan, usia, level aktivitas, pengalaman olahraga, atau riwayat cedera.
 11. Jangan membahas topik di luar konteks meskipun user memaksa.
 12. Jangan menyebut bahwa kamu mengikuti prompt, system prompt, instruksi developer, atau aturan internal.
+13. Jika user minta rekomendasi tempat terdekat tapi lokasi belum jelas, minta user tulis lokasi sekarang (kota/area).
 
 Format jawaban:
 - Jawab langsung ke inti pertanyaan.
@@ -152,6 +153,7 @@ PROMPT;
         ]);
 
         $youtubeResults = [];
+        $mapsResults = [];
 
         try {
             $prompt = trim($mainPrompt)
@@ -159,10 +161,15 @@ PROMPT;
                 . "\n\nUser message:\n" . $validated['message']
                 . "\n\nInstruksi output:"
                 . "\nBalas dalam JSON murni tanpa markdown."
-                . "\nFormat: {\"reply\":\"...\",\"youtube_search\":true|false,\"youtube_query\":\"...\"}"
+                . "\nFormat: {\"reply\":\"...\",\"youtube_search\":true|false,\"youtube_query\":\"...\",\"maps_search\":true|false,\"maps_query\":\"...\"}"
                 . "\nPilih youtube_search = true hanya jika user minta rekomendasi video atau tutorial."
                 . "\nJika youtube_search = false, isi youtube_query dengan string kosong."
-                . "\nJika youtube_search = true, buat youtube_query singkat dan relevan (maks 8 kata).";
+                . "\nJika youtube_search = true, buat youtube_query singkat dan relevan (maks 8 kata)."
+                . "\nPilih maps_search = true hanya jika user minta rekomendasi tempat atau gym terdekat DAN lokasi user sudah disebutkan di chat."
+                . "\nJika maps_search = false, isi maps_query dengan string kosong."
+                . "\nJika maps_search = true, buat maps_query singkat dan relevan (maks 8 kata) dan sertakan lokasi."
+                . "\nJika lokasi belum disebutkan, maps_search = false dan minta user kirim lokasi (tanyakan sedang ada dikota mana)."
+                . "\nJika user hanya membalas nama kota/area (contoh: \"Jakarta\"), anggap itu jawaban lokasi dan set maps_search = true.";
 
             $result = Gemini::generativeModel(
                 model: 'gemini-3.1-flash-lite'
@@ -186,9 +193,23 @@ PROMPT;
                 $aiReplyText = $decoded['reply'] ?? $rawText;
                 $shouldSearch = (bool) ($decoded['youtube_search'] ?? false);
                 $youtubeQuery = $decoded['youtube_query'] ?? '';
+                $shouldMapsSearch = (bool) ($decoded['maps_search'] ?? false);
+                $mapsQuery = $decoded['maps_query'] ?? '';
 
                 if ($shouldSearch && is_string($youtubeQuery) && trim($youtubeQuery) !== '') {
                     $youtubeResults = $this->searchYoutube($youtubeQuery);
+                }
+
+                if ($shouldMapsSearch && is_string($mapsQuery) && trim($mapsQuery) !== '') {
+                    $mapsResults = $this->searchOpenStreetMap($mapsQuery);
+                }
+            }
+
+            if ($mapsResults === []) {
+                $fallbackQuery = $this->inferMapsQueryFromMessage($validated['message'], $historyChats);
+
+                if ($fallbackQuery !== null) {
+                    $mapsResults = $this->searchOpenStreetMap($fallbackQuery);
                 }
             }
 
@@ -210,6 +231,7 @@ PROMPT;
                     'user_message' => $chat,
                     'ai_reply'     => $aiReply,
                     'youtube_results' => $youtubeResults,
+                    'maps_result' => $mapsResults,
                 ],
             ], 201);
 
@@ -232,6 +254,7 @@ PROMPT;
                     'user_message' => $chat,
                     'ai_reply'     => $aiReply,
                     'youtube_results' => $youtubeResults,
+                    'maps_result' => $mapsResults,
                 ],
             ], 500);
         }
@@ -289,6 +312,277 @@ PROMPT;
         }
 
         return $results;
+    }
+
+    private function searchOpenStreetMap(string $query): array
+    {
+        $trimmedQuery = trim($query);
+
+        if ($trimmedQuery === '') {
+            return [];
+        }
+
+        $locationQuery = $this->extractLocationQuery($trimmedQuery);
+        $geo = $this->geocodeLocation($locationQuery !== '' ? $locationQuery : $trimmedQuery);
+
+        if (!$geo) {
+            return [];
+        }
+
+        $radiusMeters = 3000;
+        $gyms = $this->searchOverpassGyms($geo['lat'], $geo['lon'], $radiusMeters);
+
+        if ($gyms === []) {
+            return [];
+        }
+
+        $locationHint = $locationQuery !== ''
+            ? $locationQuery
+            : ($geo['label'] ?? '');
+
+        $results = [];
+
+        foreach ($gyms as $gym) {
+            $distance = $this->haversineDistance($geo['lat'], $geo['lon'], $gym['lat'], $gym['lon']);
+            $name = $gym['name'];
+            $queryHint = trim($name . ' ' . $locationHint);
+
+            $results[] = [
+                'name' => $name,
+                'address' => $this->buildAddress($gym['tags']),
+                'distance_m' => $distance !== null ? (int) round($distance) : null,
+                'location' => [
+                    'lat' => $gym['lat'],
+                    'lng' => $gym['lon'],
+                ],
+                'maps_url' => 'https://www.openstreetmap.org/?mlat=' . $gym['lat'] . '&mlon=' . $gym['lon'] . '#map=16/' . $gym['lat'] . '/' . $gym['lon'],
+                'google_search_url' => 'https://www.google.com/search?q=' . urlencode($queryHint),
+            ];
+        }
+
+        usort($results, fn (array $a, array $b) => ($a['distance_m'] ?? PHP_INT_MAX) <=> ($b['distance_m'] ?? PHP_INT_MAX));
+
+        return array_slice($results, 0, 8);
+    }
+
+    private function inferMapsQueryFromMessage(string $message, $historyChats): ?string
+    {
+        $trimmed = trim($message);
+
+        if ($trimmed === '' || strlen($trimmed) > 60) {
+            return null;
+        }
+
+        $lastAssistant = $this->getLastAssistantMessage($historyChats);
+        $askedLocation = $lastAssistant && preg_match('/\b(lokasi|daerah|kota|di mana|dimana)\b/i', $lastAssistant);
+
+        if (!$askedLocation) {
+            return null;
+        }
+
+        if (preg_match('/\b(gym|fitness|fitnes)\b/i', $trimmed)) {
+            return $trimmed;
+        }
+
+        return 'gym ' . $trimmed;
+    }
+
+    private function getLastAssistantMessage($historyChats): ?string
+    {
+        if (!is_object($historyChats) || !method_exists($historyChats, 'filter')) {
+            return null;
+        }
+
+        $lastAssistant = $historyChats
+            ->filter(fn ($chat) => $chat->role === 'assistant')
+            ->last();
+
+        if (!$lastAssistant) {
+            return null;
+        }
+
+        return is_string($lastAssistant->message) ? $lastAssistant->message : null;
+    }
+
+    private function extractLocationQuery(string $query): string
+    {
+        $cleaned = preg_replace('/\b(gym|gym terdekat|fitness|fitnes|dekat|terdekat)\b/i', '', $query);
+
+        if (!is_string($cleaned)) {
+            return '';
+        }
+
+        $cleaned = trim(preg_replace('/\s+/', ' ', $cleaned));
+
+        return $cleaned;
+    }
+
+    private function geocodeLocation(string $query): ?array
+    {
+        $items = $this->queryNominatim($query, 'id');
+
+        if ($items === []) {
+            $items = $this->queryNominatim($query, null);
+        }
+
+        if ($items === []) {
+            return null;
+        }
+
+        $item = $this->pickNominatimResult($items, 'id') ?? $items[0];
+        $lat = $item['lat'] ?? null;
+        $lon = $item['lon'] ?? null;
+
+        if (!is_numeric($lat) || !is_numeric($lon)) {
+            return null;
+        }
+
+        return [
+            'lat' => (float) $lat,
+            'lon' => (float) $lon,
+            'label' => $item['display_name'] ?? null,
+        ];
+    }
+
+    private function queryNominatim(string $query, ?string $countryCode): array
+    {
+        try {
+            $params = [
+                'q' => $query,
+                'format' => 'json',
+                'limit' => 5,
+                'addressdetails' => 1,
+            ];
+
+            if ($countryCode) {
+                $params['countrycodes'] = $countryCode;
+            }
+
+            $response = Http::timeout(8)
+                ->withHeaders([
+                    'User-Agent' => 'FitTrack/1.0 (FitTrack Laravel)',
+                    'Accept-Language' => 'id',
+                ])
+                ->get('https://nominatim.openstreetmap.org/search', $params);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json();
+
+        return is_array($items) ? $items : [];
+    }
+
+    private function pickNominatimResult(array $items, string $countryCode): ?array
+    {
+        $target = strtolower($countryCode);
+
+        foreach ($items as $item) {
+            $address = $item['address'] ?? null;
+            $code = is_array($address) ? strtolower((string) ($address['country_code'] ?? '')) : '';
+
+            if ($code === $target) {
+                return $item;
+            }
+        }
+
+        return null;
+    }
+
+    private function searchOverpassGyms(float $lat, float $lon, int $radiusMeters): array
+    {
+        $query = '[out:json][timeout:10];'
+            . '(' 
+            . 'node["amenity"="gym"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . 'way["amenity"="gym"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . 'relation["amenity"="gym"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . 'node["leisure"="fitness_centre"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . 'way["leisure"="fitness_centre"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . 'relation["leisure"="fitness_centre"](around:' . $radiusMeters . ',' . $lat . ',' . $lon . ');'
+            . ');out center tags;';
+
+        try {
+            $response = Http::timeout(12)
+                ->withHeaders([
+                    'User-Agent' => 'FitTrack/1.0 (FitTrack Laravel)',
+                ])
+                ->asForm()
+                ->post('https://overpass-api.de/api/interpreter', [
+                    'data' => $query,
+                ]);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $payload = $response->json();
+        $elements = is_array($payload) ? ($payload['elements'] ?? []) : [];
+        $results = [];
+
+        foreach ($elements as $element) {
+            $tags = $element['tags'] ?? [];
+            $name = $tags['name'] ?? null;
+            $itemLat = $element['lat'] ?? ($element['center']['lat'] ?? null);
+            $itemLon = $element['lon'] ?? ($element['center']['lon'] ?? null);
+
+            if (!$name || !is_numeric($itemLat) || !is_numeric($itemLon)) {
+                continue;
+            }
+
+            $results[] = [
+                'name' => $name,
+                'lat' => (float) $itemLat,
+                'lon' => (float) $itemLon,
+                'tags' => is_array($tags) ? $tags : [],
+            ];
+        }
+
+        return $results;
+    }
+
+    private function buildAddress(array $tags): ?string
+    {
+        $full = $tags['addr:full'] ?? null;
+
+        if (is_string($full) && trim($full) !== '') {
+            return $full;
+        }
+
+        $street = trim((string) ($tags['addr:street'] ?? ''));
+        $house = trim((string) ($tags['addr:housenumber'] ?? ''));
+        $city = trim((string) ($tags['addr:city'] ?? ''));
+        $state = trim((string) ($tags['addr:state'] ?? ''));
+        $postcode = trim((string) ($tags['addr:postcode'] ?? ''));
+
+        $line = trim($street . ' ' . $house);
+        $parts = array_filter([$line, $city, $state, $postcode]);
+
+        if ($parts === []) {
+            return $tags['address'] ?? null;
+        }
+
+        return implode(', ', $parts);
+    }
+
+    private function haversineDistance(float $lat1, float $lon1, float $lat2, float $lon2): ?float
+    {
+        $earthRadius = 6371000;
+        $deltaLat = deg2rad($lat2 - $lat1);
+        $deltaLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($deltaLat / 2) * sin($deltaLat / 2)
+            + cos(deg2rad($lat1)) * cos(deg2rad($lat2))
+            * sin($deltaLon / 2) * sin($deltaLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
     }
 
     public function personalizationIndex(Request $request)
