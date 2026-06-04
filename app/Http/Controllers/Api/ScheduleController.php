@@ -5,38 +5,32 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
+use App\Models\Reminder;
+use App\Models\Notification;
 
 class ScheduleController extends Controller
 {
     /**
      * Endpoint untuk membuat jadwal baru
      */
-    public function store(Request $request)
+    public function index(Request $request)
     {
-        // Validasi input
-        $request->validate([
-            'workout_id' => 'required|exists:workouts,id',
-            'title' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'schedule_time' => 'required|date_format:Y-m-d H:i:s|after:now',
-        ]);
+        // 1. Ambil ID user yang lagi login pakai token
+        $userId = $request->user()->id;
 
-        // Simpan jadwal
-        $schedule = Schedule::create([
-            'user_id' => $request->user()->id,
-            'workout_id' => $request->workout_id, // Simpan ID workout
-            'title' => $request->title,
-            'description' => $request->description,
-            'schedule_time' => $request->schedule_time,
-            'is_notified' => false,
-        ]);
+        // 2. Ambil data dari tabel schedules
+        // with('workout') berfungsi untuk "nge-join" data dari tabel workouts
+        // Jadi nama olahraga, kalori, dll otomatis kebawa ke Android
+        $schedules = Schedule::with('workout')
+            ->where('user_id', $userId)
+            ->orderBy('schedule_time', 'asc') // Urutkan dari jadwal terdekat
+            ->get();
 
-        $schedule->load('workout'); 
-
+        // 3. Kembalikan dalam format JSON yang pas dengan ScheduleListResponse lu di Android
         return response()->json([
-            'success' => true,
-            'message' => 'Jadwal latihan berhasil dibuat!',
-            'data' => $schedule
-        ], 201);
+            'status' => true,
+            'message' => 'Berhasil mengambil daftar jadwal beserta relasi workout.',
+            'data' => $schedules
+        ], 200);
     }
 }
