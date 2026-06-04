@@ -6,6 +6,7 @@ use App\Models\AiChat;
 use App\Models\AiPersonalization;
 use Gemini\Laravel\Facades\Gemini;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Throwable;
 
 class AiController extends Controller
@@ -136,14 +137,45 @@ PROMPT;
             'meta'    => $validated['meta'] ?? null,
         ]);
 
+        $youtubeResults = [];
+
         try {
-            $prompt = trim($mainPrompt) . "\n\nUser message:\n" . $validated['message'];
+            $prompt = trim($mainPrompt)
+                . "\n\nUser message:\n" . $validated['message']
+                . "\n\nInstruksi output:"
+                . "\nBalas dalam JSON murni tanpa markdown."
+                . "\nFormat: {\"reply\":\"...\",\"youtube_search\":true|false,\"youtube_query\":\"...\"}"
+                . "\nPilih youtube_search = true hanya jika user minta rekomendasi video atau tutorial."
+                . "\nJika youtube_search = false, isi youtube_query dengan string kosong."
+                . "\nJika youtube_search = true, buat youtube_query singkat dan relevan (maks 8 kata).";
 
             $result = Gemini::generativeModel(
                 model: 'gemini-3.1-flash-lite'
             )->generateContent($prompt);
 
-            $aiReplyText = $result->text();
+            $rawText = trim($result->text());
+            $aiReplyText = $rawText;
+
+            $decoded = json_decode($rawText, true);
+            if (!is_array($decoded)) {
+                $jsonStart = strpos($rawText, '{');
+                $jsonEnd = strrpos($rawText, '}');
+
+                if ($jsonStart !== false && $jsonEnd !== false && $jsonEnd > $jsonStart) {
+                    $maybeJson = substr($rawText, $jsonStart, $jsonEnd - $jsonStart + 1);
+                    $decoded = json_decode($maybeJson, true);
+                }
+            }
+
+            if (is_array($decoded)) {
+                $aiReplyText = $decoded['reply'] ?? $rawText;
+                $shouldSearch = (bool) ($decoded['youtube_search'] ?? false);
+                $youtubeQuery = $decoded['youtube_query'] ?? '';
+
+                if ($shouldSearch && is_string($youtubeQuery) && trim($youtubeQuery) !== '') {
+                    $youtubeResults = $this->searchYoutube($youtubeQuery);
+                }
+            }
 
             $aiReply = AiChat::create([
                 'user_id' => $user->id,
@@ -162,6 +194,7 @@ PROMPT;
                 'data'    => [
                     'user_message' => $chat,
                     'ai_reply'     => $aiReply,
+                    'youtube_results' => $youtubeResults,
                 ],
             ], 201);
 
@@ -183,9 +216,64 @@ PROMPT;
                 'data'    => [
                     'user_message' => $chat,
                     'ai_reply'     => $aiReply,
+                    'youtube_results' => $youtubeResults,
                 ],
             ], 500);
         }
+    }
+
+    private function searchYoutube(string $query): array
+    {
+        $apiKey = config('services.youtube.key');
+        $trimmedQuery = trim($query);
+
+        if (!$apiKey || $trimmedQuery === '') {
+            return [];
+        }
+
+        try {
+            $response = Http::timeout(8)->get('https://www.googleapis.com/youtube/v3/search', [
+                'part'       => 'snippet',
+                'q'          => $trimmedQuery,
+                'type'       => 'video',
+                'maxResults' => 3,
+                'safeSearch' => 'moderate',
+                'key'        => $apiKey,
+            ]);
+        } catch (Throwable $e) {
+            return [];
+        }
+
+        if (!$response->successful()) {
+            return [];
+        }
+
+        $items = $response->json('items', []);
+        $results = [];
+
+        foreach ($items as $item) {
+            $videoId = $item['id']['videoId'] ?? null;
+
+            if (!$videoId) {
+                continue;
+            }
+
+            $snippet = $item['snippet'] ?? [];
+            $thumbnail = $snippet['thumbnails']['medium']['url']
+                ?? $snippet['thumbnails']['default']['url']
+                ?? null;
+
+            $results[] = [
+                'video_id'     => $videoId,
+                'title'        => $snippet['title'] ?? null,
+                'channel'      => $snippet['channelTitle'] ?? null,
+                'thumbnail'    => $thumbnail,
+                'published_at' => $snippet['publishedAt'] ?? null,
+                'url'          => 'https://www.youtube.com/watch?v=' . $videoId,
+            ];
+        }
+
+        return $results;
     }
 
     public function personalizationIndex(Request $request)
