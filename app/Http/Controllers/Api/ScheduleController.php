@@ -34,6 +34,26 @@ class ScheduleController extends Controller
         ], 200);
     }
 
+    public function store(Request $request)
+{
+    $validated = $request->validate([
+        'workout_id' => 'required|exists:workouts,id',
+        'schedule_time' => 'required|date'
+    ]);
+
+    $schedule = Schedule::create([
+        'user_id' => $request->user()->id,
+        'workout_id' => $validated['workout_id'],
+        'schedule_time' => $validated['schedule_time']
+    ]);
+
+    return response()->json([
+        'status' => true,
+        'message' => 'Jadwal berhasil dibuat',
+        'data' => $schedule
+    ], 201);
+}
+
     public function indexAdmin()
     {
         // Tarik semua jadwal, sekalian di-join sama tabel users
