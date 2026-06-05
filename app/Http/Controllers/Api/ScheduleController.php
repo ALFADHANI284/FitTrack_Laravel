@@ -33,4 +33,18 @@ class ScheduleController extends Controller
             'data' => $schedules
         ], 200);
     }
+
+    public function indexAdmin()
+    {
+        // Tarik semua jadwal, sekalian di-join sama tabel users
+        $schedules = Schedule::with('user:id,name,email')
+            ->orderBy('schedule_time', 'desc')
+            ->get();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Berhasil mengambil semua jadwal',
+            'data' => $schedules
+        ], 200);
+    }
 }
