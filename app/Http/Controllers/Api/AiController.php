@@ -7,6 +7,13 @@ use App\Models\AiPersonalization;
 use Gemini\Laravel\Facades\Gemini;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use App\Models\WorkoutHistory;
+use App\Models\ProgressEntry;
+use App\Models\Reminder;
+use App\Models\Schedule;
+use App\Models\Favorite;
 use Throwable;
 
 class AiController extends Controller
@@ -33,6 +40,82 @@ class AiController extends Controller
         ]);
 
         $user = $request->user();
+
+        // Ambil data user context
+        $workoutDates = WorkoutHistory::where('user_id', $user->id)
+            ->whereNotNull('completed_at')
+            ->select(DB::raw('DATE(completed_at) as date')) 
+            ->groupBy('date')
+            ->orderBy('date', 'desc')
+            ->pluck('date');
+
+        $streak = 0;
+        if ($workoutDates->isNotEmpty()) {
+            $today = now()->startOfDay();
+            $hasWorkoutToday = $workoutDates->contains($today->toDateString());
+            $dateToCheck = $hasWorkoutToday ? $today : now()->subDay()->startOfDay();
+            foreach ($workoutDates as $dateString) {
+                $parsedDate = Carbon::parse($dateString)->startOfDay();
+                if ($parsedDate->equalTo($dateToCheck)) {
+                    $streak++;
+                    $dateToCheck->subDay(); 
+                } else {
+                    break; 
+                }
+            }
+        }
+
+        $progresses = ProgressEntry::where('user_id', $user->id)->latest('measured_at')->take(3)->get();
+        $progStrings = [];
+        foreach($progresses as $prog) {
+            $measuredAt = $prog->measured_at ? Carbon::parse($prog->measured_at)->format('Y-m-d') : 'unknown';
+            $progStrings[] = $prog->weight_kg . "kg (" . $measuredAt . ")";
+        }
+        $progressText = empty($progStrings) ? 'Belum ada' : implode(', ', $progStrings);
+
+        $reminders = Reminder::where('user_id', $user->id)->where('is_sent', false)->where('remind_at', '>=', now())->take(3)->get();
+        $remStrings = [];
+        foreach($reminders as $rem) {
+            $remStrings[] = $rem->title . " (" . Carbon::parse($rem->remind_at)->format('Y-m-d H:i') . ")";
+        }
+        $reminderText = empty($remStrings) ? 'Tidak ada' : implode(', ', $remStrings);
+
+        $schedules = Schedule::with('workout')->where('user_id', $user->id)->where('schedule_time', '>=', now())->orderBy('schedule_time', 'asc')->take(3)->get();
+        $schStrings = [];
+        foreach($schedules as $sch) {
+            $wName = $sch->workout ? $sch->workout->title : $sch->title;
+            $schStrings[] = $wName . " (" . Carbon::parse($sch->schedule_time)->format('Y-m-d H:i') . ")";
+        }
+        $scheduleText = empty($schStrings) ? 'Tidak ada' : implode(', ', $schStrings);
+
+        $favorites = Favorite::with('workout')->where('user_id', $user->id)->get();
+        $favStrings = [];
+        foreach($favorites as $fav) {
+            if ($fav->workout) {
+                $favStrings[] = $fav->workout->title;
+            }
+        }
+        $favoriteText = empty($favStrings) ? 'Tidak ada' : implode(', ', $favStrings);
+
+        $userDataContext = "
+Data Pengguna Saat Ini:
+- Nama: " . ($user->name ?? 'Belum diset') . "
+- Umur: " . ($user->age ?? 'Belum diset') . " tahun
+- Berat Badan: " . ($user->weight ?? 'Belum diset') . " kg
+- Tinggi Badan: " . ($user->height ?? 'Belum diset') . " cm
+- Gender: " . ($user->gender ?? 'Belum diset') . "
+- Goal: " . ($user->goal ?? 'Belum diset') . "
+- Activity Level: " . ($user->activity_level ?? 'Belum diset') . "
+- Target Kalori Harian: " . ($user->daily_calories_target ?? 'Belum diset') . " kcal
+- Poin: " . ($user->points ?? 0) . "
+- Streak Workout: " . $streak . " hari beruntun
+- Riwayat Progress (Berat Badan Terbaru): " . $progressText . "
+- Reminder Aktif: " . $reminderText . "
+- Jadwal Workout Mendatang: " . $scheduleText . "
+- Workout Favorit: " . $favoriteText . "
+
+Perhatikan data pengguna di atas untuk menjawab jika user bertanya tentang progress, streak, jadwal, reminder, favorit, target, poin atau profil mereka secara spesifik. Jika tidak ditanya, tidak perlu disebutkan.
+";
 
         $mainPrompt = <<<'PROMPT'
 Kamu adalah FitAI, AI assistant untuk aplikasi FitTrack.
@@ -157,6 +240,7 @@ PROMPT;
 
         try {
             $prompt = trim($mainPrompt)
+                . "\n\n" . trim($userDataContext)
                 . "\n\nRiwayat singkat:\n" . $historyText
                 . "\n\nUser message:\n" . $validated['message']
                 . "\n\nInstruksi output:"
