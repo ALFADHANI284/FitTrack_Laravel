@@ -107,7 +107,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/favorites/{workoutId}', [FavoriteController::class, 'store']); // (Udah)
     Route::delete('/favorites/{workoutId}', [FavoriteController::class, 'destroy']); // (Udah)
 
-    // ACHIEVEMENTS & POINTS 
+        // ACHIEVEMENTS & POINTS (Udah)
     Route::get('/achievements', [AchievementController::class, 'index']); // (Udah)
     Route::post('/achievements/claim/{id}', [AchievementController::class, 'claim']); // (Udah)
     Route::get('/achievements/points', [AchievementController::class, 'points']); // (Udah)
@@ -152,6 +152,7 @@ Route::middleware(['auth:sanctum', IsAdmin::class])->group(function () {
     Route::post('/workout-schedules', [WorkoutScheduleController::class, 'store']);
     Route::put('/workout-schedules/{id}', [WorkoutScheduleController::class, 'update']);
     Route::delete('/workout-schedules/{id}', [WorkoutScheduleController::class, 'destroy']);
+    Route::get('/admin/workout-schedules', [App\Http\Controllers\Api\ScheduleController::class, 'indexAdmin']);
 
     // Categories
     Route::post('/categories', [CategoryController::class, 'store']); // (Udah)
